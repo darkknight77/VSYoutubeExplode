@@ -4,10 +4,12 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using Windows.Media.Core;
 using Windows.Networking.BackgroundTransfer;
 using Windows.Storage;
 using Windows.Storage.Streams;
@@ -30,8 +32,7 @@ namespace YoutubeExplodeAPIDemo
     /// </summary>
     public sealed partial class MainPage : Page
     {
-        DownloadOperation downloadOperation;
-        CancellationTokenSource cancellationToken;
+        
         double progress;
 
 
@@ -51,11 +52,11 @@ namespace YoutubeExplodeAPIDemo
             var video = await client.GetVideoAsync(id);
 
             var title = video.Title; // "Infected Mushroom - Spitfire [Monstercat Release]"
-            StatusText.Text = String.Format("{0} ", title);
+           // StatusText.Text = String.Format("{0} ", title);
             var author = video.Author; // "Monstercat"
             var duration = video.Duration; // 00:07:14
 
-            StatusText.Text = $"        id: {id}    client: {client}   title: {title}      author: {author}      duration: {duration} ";
+            StatusText.Text = $"   title: {title}  |    author: {author}   |   duration: {duration} ";
 
             var streamInfoSet = await client.GetVideoMediaStreamInfosAsync(id);
 
@@ -75,25 +76,30 @@ namespace YoutubeExplodeAPIDemo
             var ext = streamInfo.Container.GetFileExtension();
 
             Debug.WriteLine("Trying to download");
-
+            // Removes All special characters from a String(Title). With special characters in string 
+            // you cannot use that string as filename while writing to stream. It throws File Not found exception.
+            string displayName=Regex.Replace(title.ToString(), @"[^0-9a-zA-Z]+", "");
+            Debug.WriteLine($"{displayName}");
+           
             //Windows.Storage.StorageFolder folder = await ApplicationData.Current.LocalFolder;
 
             // StorageFile file = await DownloadsFolder.CreateFileAsync($"file.{ext}");
 
-            var file = await KnownFolders.VideosLibrary.OpenStreamForWriteAsync($"file.{ext}", CreationCollisionOption.GenerateUniqueName);
+            var file = await KnownFolders.VideosLibrary.OpenStreamForWriteAsync($"{displayName}.{ext}", CreationCollisionOption.GenerateUniqueName);
            
-            Progress = 0;
-
+            
             var progressHandler = new Progress<double>(p => 
             { 
                 Progress = p;
                 
                 StatusText1.Text = String.Format("{0}% of {1}% complete.", Convert.ToInt32(Math.Floor(p * 100)), 100);
                 Debug.WriteLine(progress);
+                if (p == 1) {
+                    MediaSource mediaSource = MediaSource.CreateFromStream(file.AsRandomAccessStream(), "video/MPEG-4");
+                    mediaPlayerElement.Source = mediaSource;
+                    mediaPlayerElement.AutoPlay = true;
+                }
             });
-
-             
-            StatusText.Text = this.progress.ToString();
 
             
             //IRandomAccessStream fileStream = await file.OpenAsync(FileAccessMode.Read);

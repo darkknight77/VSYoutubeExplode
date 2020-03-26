@@ -14,7 +14,7 @@
         <MediaPlayerElement x:Name="mediaPlayerElement" AreTransportControlsEnabled="True" Margin="50" Width="500" Height="300" VerticalAlignment="Top"></MediaPlayerElement>
         <TextBox x:Name="UrlText" PlaceholderText="Enter Url" TextAlignment="Center"  Margin="20" Width="500" HorizontalAlignment="Center" ></TextBox>
         
-        <TextBlock x:Name="StatusText" Text="Begin" TextAlignment="Center" Width="500" HorizontalAlignment="Center" ></TextBlock>
+        <TextBlock x:Name="StatusText" Text="Begin" TextAlignment="Center" Width="900" HorizontalAlignment="Center" ></TextBlock>
         <TextBlock x:Name="StatusText1" Text="Begin" TextAlignment="Center" Width="500" HorizontalAlignment="Center" ></TextBlock>
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" >
