@@ -41,6 +41,52 @@ namespace YoutubeExplodeAPIDemo
             this.InitializeComponent();
         }
 
+      async private void getYoutubeFileProps(Stream stream) {
+            var url = UrlText.Text;
+
+            //var url = "https://www.youtube.com/watch?v=bnsUkE8i0tU";
+            var id = YoutubeClient.ParseVideoId(url); // "bnsUkE8i0tU"
+            var client = new YoutubeClient();
+
+            var video = await client.GetVideoAsync(id);
+
+            var title = video.Title; // "Infected Mushroom - Spitfire [Monstercat Release]"
+                                     // StatusText.Text = String.Format("{0} ", title);
+            var author = video.Author; // "Monstercat"
+            var duration = video.Duration; // 00:07:14
+            var streamInfoSet = await client.GetVideoMediaStreamInfosAsync(id);
+            var streamInfo = streamInfoSet.Muxed.WithHighestVideoQuality();
+
+            var ext = streamInfo.Container.GetFileExtension();
+            string displayName = Regex.Replace(title.ToString(), @"[^0-9a-zA-Z]+", "-");
+
+            var progressHandler = new Progress<double>(p =>
+            {
+                Progress = p;
+
+                StatusText1.Text = String.Format("{0}% of {1}% complete.", Convert.ToInt32(Math.Floor(p * 100)), 100);
+                Debug.WriteLine(progress);
+                if (p == 1)
+                {
+                    MediaSource mediaSource = MediaSource.CreateFromStream(stream.AsRandomAccessStream(), "video/MPEG-4");
+                    mediaPlayerElement.Source = mediaSource;
+                    mediaPlayerElement.AutoPlay = true;
+                }
+            });
+
+            try
+            {
+                await client.DownloadMediaStreamAsync(streamInfo, stream, progressHandler);
+            }
+            catch (Exception ex)
+            {
+
+                Debug.WriteLine(ex.ToString());
+                StatusText1.Text = "Cannot download";
+            }
+
+        }
+
         private async void btn_Click(object sender, RoutedEventArgs e)
         {
             var url = UrlText.Text; 
@@ -113,16 +159,68 @@ namespace YoutubeExplodeAPIDemo
                 StatusText1.Text = "Cannot download";
             }
             //  IRandomAccessStream fileStream = await file.OpenAsync(FileAccessMode.Read);
-           
+        
         
         }
 
         
+
+
+       
+       async private void SaveWithFilepickerAndDownload(object sender, RoutedEventArgs e)
+        {
+
+          
+            var savePicker = new Windows.Storage.Pickers.FileSavePicker();
+            savePicker.SuggestedStartLocation =
+                Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
+            // Dropdown of file types the user can save the file as
+            savePicker.FileTypeChoices.Add("Video", new List<string>() { ".mp4",".mkv" });
+            // Default file name if the user does not type one in or select a file to replace
+            savePicker.SuggestedFileName = "New File";
+            Windows.Storage.StorageFile file = await savePicker.PickSaveFileAsync();
+            if (file != null)
+            {
+                // Prevent updates to the remote version of the file until
+                // we finish making changes and call CompleteUpdatesAsync.
+                Windows.Storage.CachedFileManager.DeferUpdates(file);
+
+                var stream = await file.OpenStreamForWriteAsync();
+                getYoutubeFileProps(stream);
+
+                // write to file
+                //       await Windows.Storage.FileIO.WriteTextAsync(file, file.Name);
+                // Let Windows know that we're finished changing the file so
+                // the other app can update the remote version of the file.
+                // Completing updates may require Windows to ask for user input.
+
+
+
+                Windows.Storage.Provider.FileUpdateStatus status =
+                    await Windows.Storage.CachedFileManager.CompleteUpdatesAsync(file);
+                if (status == Windows.Storage.Provider.FileUpdateStatus.Complete)
+                {
+                    this.StatusText.Text = "File " + file.Name + " was saved.";
+                    Debug.WriteLine("File created Successfully. Download started");
+                }
+                else
+                {
+                    this.StatusText.Text = "File " + file.Name + " couldn't be saved.";
+                }
+            }
+            else
+            {
+                this.StatusText.Text = "Operation cancelled.";
+            }
+
+
+        }
         public double Progress
         {
             get
-            {   return  this.progress;
-         }
+            {
+                return this.progress;
+            }
             set
             {
                 this.progress = value;
